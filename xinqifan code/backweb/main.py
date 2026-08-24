@@ -177,7 +177,8 @@ def generate_answer(image: Image.Image, question: str, max_new_tokens: int = 512
 
     # ── Step 5: 自回归生成回答 token 序列 ─────────────────────────────────────
     # max_new_tokens 限制最多生成 512 个新 token，防止输出过长
-    generated_ids = model.generate(**model_inputs, max_new_tokens=max_new_tokens)
+    # 贪婪解码：每步都取概率最高的 token，保证同一输入的结果可复现
+    generated_ids = model.generate(**model_inputs, max_new_tokens=max_new_tokens, do_sample=False)
 
     # ── Step 6: 裁剪掉输入部分，只保留新生成的 token ──────────────────────────
     # generated_ids 包含完整序列（输入 + 输出），

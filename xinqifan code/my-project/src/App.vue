@@ -2,7 +2,7 @@
 import { ref, onMounted } from 'vue'
 import axios from 'axios'
 
-// 后端地址，可通过 .env 中的 VITE_API_BASE_URL 覆盖
+// Backend URL, can be overridden via VITE_API_BASE_URL in .env
 const API_BASE = import.meta.env.VITE_API_BASE_URL || 'http://localhost:8080'
 
 interface HistoryItem {
@@ -30,7 +30,7 @@ function triggerFileInput() {
 function setFile(file: File | undefined) {
   if (!file) return
   if (!file.type.startsWith('image/')) {
-    error.value = '请上传图片文件'
+    error.value = 'Please upload an image file'
     return
   }
   selectedFile.value = file
@@ -61,9 +61,9 @@ async function submit() {
     await fetchHistory()
   } catch (err) {
     if (axios.isAxiosError(err)) {
-      error.value = err.response?.data?.detail || '请求失败，请检查后端服务是否已启动'
+      error.value = err.response?.data?.detail || 'Request failed, please check if the backend service is running'
     } else {
-      error.value = '未知错误'
+      error.value = 'Unknown error'
     }
   } finally {
     loading.value = false
@@ -80,7 +80,7 @@ async function fetchHistory() {
     const { data } = await axios.get(`${API_BASE}/api/history`)
     history.value = data.history
   } catch {
-    // 历史记录加载失败时静默忽略，不影响主流程
+    // Silently ignore history load failures, does not affect main flow
   }
 }
 
@@ -89,7 +89,7 @@ async function removeHistory(id: number) {
     await axios.delete(`${API_BASE}/api/history/${id}`)
     history.value = history.value.filter((h) => h.id !== id)
   } catch {
-    // 删除失败时静默忽略
+    // Silently ignore delete failures
   }
 }
 
@@ -103,15 +103,15 @@ onMounted(() => {
     <header class="app-header">
       <div class="app-header-icon"><i class="ti ti-microscope"></i></div>
       <div>
-        <h1 class="app-title">肠道内镜影像 VQA 系统</h1>
-        <p class="app-subtitle">上传内镜图像并输入问题，AI 模型将基于图像内容给出分析结果</p>
+        <h1 class="app-title">Bowel Endoscopy Image VQA System</h1>
+        <p class="app-subtitle">Upload an endoscopic image and enter a question, the AI model will analyze the image and provide a result</p>
       </div>
     </header>
 
     <div class="grid">
       <section class="panel">
         <div class="panel-header">
-          <p class="panel-title">上传与提问</p>
+          <p class="panel-title">Upload &amp; Ask</p>
         </div>
         <div
           class="upload-box"
@@ -128,24 +128,24 @@ onMounted(() => {
             @change="onFileChange"
           />
           <template v-if="previewUrl">
-            <img :src="previewUrl" class="preview-img" alt="预览图" />
-            <p class="upload-sub">点击重新选择图片</p>
+            <img :src="previewUrl" class="preview-img" alt="Preview" />
+            <p class="upload-sub">Click to choose a different image</p>
           </template>
           <template v-else>
             <div class="upload-icon"><i class="ti ti-upload"></i></div>
-            <p class="upload-title">上传内镜图像</p>
-            <p class="upload-sub">点击或拖拽上传图片（支持 JPG/PNG）</p>
+            <p class="upload-title">Upload Endoscopic Image</p>
+            <p class="upload-sub">Click or drag and drop to upload an image (JPG/PNG supported)</p>
           </template>
         </div>
 
-        <p class="question-label">输入您的问题</p>
+        <p class="question-label">Enter your question</p>
         <div class="question-input">
           <i class="ti ti-message-circle"></i>
           <input
             v-model="question"
             type="text"
             class="question-text-input"
-            placeholder="例如：该区域是否存在息肉？是否有溃疡？病变范围如何？"
+            placeholder="e.g. Is there a polyp in this area? Is there an ulcer? What is the extent of the lesion?"
           />
         </div>
 
@@ -153,28 +153,28 @@ onMounted(() => {
 
         <button class="submit-btn" :disabled="loading || !selectedFile || !question" @click="submit">
           <i class="ti" :class="loading ? 'ti-loader-2' : 'ti-player-play'"></i>
-          {{ loading ? '分析中...' : '提交分析' }}
+          {{ loading ? 'Analyzing...' : 'Submit Analysis' }}
         </button>
       </section>
 
       <section class="panel">
         <div class="panel-header">
-          <p class="panel-title">AI 分析结果</p>
-          <span class="model-badge"><i class="ti ti-settings"></i>模型：Qwen2.5-VL-3B (Kvasir-VQA)</span>
+          <p class="panel-title">AI Analysis Result</p>
+          <span class="model-badge"><i class="ti ti-settings"></i>Model: Qwen2.5-VL-3B (Kvasir-VQA)</span>
         </div>
         <div class="result-card">
           <template v-if="answer">
-            <p class="section-label">诊断结果</p>
+            <p class="section-label">Diagnosis Result</p>
             <div class="diagnosis-pill"><i class="ti ti-alert-triangle"></i>{{ answer }}</div>
             <div class="result-footer">
-              <button class="copy-btn" @click="copyResult"><i class="ti ti-copy"></i>复制结果</button>
+              <button class="copy-btn" @click="copyResult"><i class="ti ti-copy"></i>Copy Result</button>
             </div>
           </template>
-          <p v-else class="section-label placeholder-text">暂无结果，请上传图像并输入问题后提交分析</p>
+          <p v-else class="section-label placeholder-text">No result yet, please upload an image and enter a question to submit for analysis</p>
         </div>
 
         <div class="history-section" v-if="history.length">
-          <p class="panel-title history-title">历史记录</p>
+          <p class="panel-title history-title">History</p>
           <div class="history-list">
             <div class="history-item" v-for="item in history" :key="item.id">
               <div class="history-info">
@@ -182,7 +182,9 @@ onMounted(() => {
                 <p class="history-a">A: {{ item.answer }}</p>
                 <p class="history-time">{{ item.created_at }}</p>
               </div>
-              <button class="delete-btn" @click="removeHistory(item.id)"><i class="ti ti-trash"></i></button>
+              <button class="delete-btn" title="Delete" @click="removeHistory(item.id)">
+                <i class="ti ti-trash"></i><span class="delete-btn-fallback">Delete</span>
+              </button>
             </div>
           </div>
         </div>
@@ -366,10 +368,13 @@ body {
 .history-a { font-size: 13px; margin: 0 0 4px; color: #0F6E56; }
 .history-time { font-size: 11px; margin: 0; color: #9B9A93; }
 .delete-btn {
-  border: none; background: transparent; cursor: pointer;
-  color: #C0392B; font-size: 15px; padding: 4px;
+  border: 0.5px solid #E4C9C4; background: #FDF3F2; cursor: pointer;
+  color: #C0392B; font-size: 15px; padding: 4px 10px;
+  border-radius: 6px;
   flex-shrink: 0;
 }
+/* Text fallback in case the icon font (loaded from CDN) fails to load */
+.delete-btn-fallback { font-size: 12px; margin-left: 4px; }
 
 @media (max-width: 860px) {
   .page { padding: 1.5rem 1rem 3rem; }

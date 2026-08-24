@@ -1,0 +1,6 @@
+﻿index,image_filename,question,reference_answer
+1,sample_1.jpg,What color is the abnormality? If more than one separate with ;,pink; red; white
+2,sample_2.jpg,How many polyps are in the image?,0
+3,sample_3.jpg,Are there any instruments in the image? Check all that are present.,none
+4,sample_4.jpg,What type of polyp is present?,none
+5,sample_5.jpg,Are there any abnormalities in the image? Check all that are present.,ulcerative colitis
