@@ -1,0 +1,4 @@
+﻿index,image_filename,img_id,source,question,reference_answer
+1,rare_case_1.jpg,clb0kvxwn92hc074y0g1i2dzr,Esophagitis,Are there any abnormalities in the image? Check all that are present.,oesophagitis; short-segment barretts
+2,rare_case_2.jpg,cl8k2u1qr1f4r08323y3d4mne,Polyps,Are there any abnormalities in the image? Check all that are present.,barretts
+3,rare_case_3.jpg,clb0kvxwg925s074yb1u83tpj,Esophagitis,Are there any abnormalities in the image? Check all that are present.,barretts; oesophagitis

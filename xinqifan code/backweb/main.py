@@ -14,24 +14,25 @@ from PIL import Image
 from transformers import Qwen2_5_VLProcessor, Qwen2_5_VLForConditionalGeneration, BitsAndBytesConfig
 from qwen_vl_utils import process_vision_info
 
-# 路径配置
+# Path configuration
 BASE_DIR = Path(__file__).resolve().parent.parent  # xinqifan code/
 MODEL_ID = "Qwen/Qwen2.5-VL-3B-Instruct"
-ADAPTER_PATH = str(BASE_DIR / "qwen2.5-3b-instruct-trl-sft-kvasir-vqa")
+ADAPTER_PATH = str(
+    BASE_DIR / "qwen2.5-3b-instruct-trl-sft-kvasir-vqa"
+    
+)
 
-# 数据库 & 图片存储路径（与 main.py 同目录）
+# Database and image storage paths (in the same directory as main.py)
 _HERE = Path(__file__).resolve().parent
 DB_PATH = str(_HERE / "vqa_history.db")
 UPLOADS_DIR = _HERE / "uploads"
 UPLOADS_DIR.mkdir(exist_ok=True)
 
-# 与训练时相同的系统提示词
+# Use the same system prompt as during training
 SYSTEM_MESSAGE = (
-    "You are a Vision Language Model specialized in interpreting visual data from medical images. "
-    "Your task is to analyze the provided gastrointestinal medical image and respond to queries with concise answers, "
-    "usually a single word, number, or short phrase. "
-    "Focus on delivering accurate, succinct answers based on the visual information. "
-    "Avoid additional explanation unless absolutely necessary."
+    "You are a Vision Language Model specialized in interpreting visual data from medical images.\n"
+    "Your task is to analyze the provided gastrointestinal medical image and respond to queries with concise answers, usually a single word, number, or short phrase.\n"
+    "Focus on delivering accurate, succinct answers based on the visual information. Avoid additional explanation unless absolutely necessary."
 )
 
 model = None
@@ -94,10 +95,10 @@ def db_delete(record_id: int) -> None:
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
-    """应用启动时加载模型，关闭时释放资源。"""
+    """Load the model at startup and release resources at shutdown."""
     global model, processor
     init_db()
-    print(f"正在加载模型 {MODEL_ID} （4-bit 量化）...")
+    print(f"Loading model {MODEL_ID} (4-bit quantization)...")
     bnb_config = BitsAndBytesConfig(
         load_in_4bit=True,
         bnb_4bit_use_double_quant=True,
@@ -112,7 +113,7 @@ async def lifespan(app: FastAPI):
     )
     model.load_adapter(ADAPTER_PATH)
     processor = Qwen2_5_VLProcessor.from_pretrained(MODEL_ID)
-    print("模型加载完成，服务已就绪。")
+    print("Model loaded. The service is ready.")
     yield
     del model, processor
 
@@ -130,12 +131,12 @@ app.add_middleware(
 
 
 def generate_answer(image: Image.Image, question: str, max_new_tokens: int = 512) -> str:
-    """使用微调后的 Qwen2.5-VL 模型对图像进行视觉问答推理。"""
+    """Run visual question answering on an image with the fine-tuned Qwen2.5-VL model."""
 
-    # ── Step 1: 构造多轮对话格式 ──────────────────────────────────────────────
-    # 按照 Qwen2.5-VL 的对话协议组织输入：
-    #   - system 角色：注入与训练时相同的系统提示词，约束模型输出简洁的医学答案
-    #   - user 角色：同时包含图像对象和文字问题
+    # ── Step 1: Build the multi-turn conversation structure ───────────────────
+    # Organize the input according to the Qwen2.5-VL conversation protocol:
+    #   - system role: inject the training system prompt to elicit concise medical answers
+    #   - user role: include both the image object and the text question
     sample = [
         {
             "role": "system",
@@ -144,30 +145,30 @@ def generate_answer(image: Image.Image, question: str, max_new_tokens: int = 512
         {
             "role": "user",
             "content": [
-                {"type": "image", "image": image},   # PIL Image 对象
-                {"type": "text", "text": question},   # 用户提问
+                {"type": "image", "image": image},   # PIL Image object
+                {"type": "text", "text": question},   # User question
             ],
         },
     ]
 
-    # ── Step 2: 将对话模板转换为模型可接受的文本字符串 ────────────────────────
-    # apply_chat_template 把对话列表渲染成带有特殊 token 的提示字符串
-    # tokenize=False 表示只生成字符串，不直接分词（后续由 processor 统一处理）
-    # add_generation_prompt=True 在末尾追加触发模型生成回答的起始 token
+    # ── Step 2: Convert the conversation template into model-compatible text ──
+    # apply_chat_template renders the conversation list as a prompt with special tokens.
+    # tokenize=False returns only a string; the processor performs tokenization later.
+    # add_generation_prompt=True appends the token that prompts the model to answer.
     text_input = processor.apply_chat_template(
         sample,
         tokenize=False,
         add_generation_prompt=True,
     )
 
-    # ── Step 3: 提取图像特征输入 ───────────────────────────────────────────────
-    # process_vision_info 从对话结构中解析出图像数据（像素值等），
-    # 返回值第二项为视频帧（此处不需要，用 _ 忽略）
+    # ── Step 3: Extract the visual inputs ──────────────────────────────────────
+    # process_vision_info extracts image data, such as pixel values, from the conversation.
+    # The second return value contains video frames and is unused here.
     image_inputs, _ = process_vision_info(sample)
 
-    # ── Step 4: 将文本 + 图像一起编码为模型输入张量，并转移到 GPU ─────────────
-    # next(model.parameters()).device 自动获取模型所在的设备（CPU / CUDA）
-    # processor 同时处理文本 token 和图像 patch，输出 PyTorch 张量
+    # ── Step 4: Encode text and images as model tensors and move them to the device ──
+    # next(model.parameters()).device identifies the model device (CPU or CUDA).
+    # The processor handles text tokens and image patches, returning PyTorch tensors.
     device = next(model.parameters()).device
     model_inputs = processor(
         text=[text_input],
@@ -175,22 +176,22 @@ def generate_answer(image: Image.Image, question: str, max_new_tokens: int = 512
         return_tensors="pt",
     ).to(device)
 
-    # ── Step 5: 自回归生成回答 token 序列 ─────────────────────────────────────
-    # max_new_tokens 限制最多生成 512 个新 token，防止输出过长
-    # 贪婪解码：每步都取概率最高的 token，保证同一输入的结果可复现
+    # ── Step 5: Autoregressively generate the answer token sequence ────────────
+    # max_new_tokens limits output length to at most 512 new tokens.
+    # Greedy decoding selects the most probable token for reproducible results.
     generated_ids = model.generate(**model_inputs, max_new_tokens=max_new_tokens, do_sample=False)
 
-    # ── Step 6: 裁剪掉输入部分，只保留新生成的 token ──────────────────────────
-    # generated_ids 包含完整序列（输入 + 输出），
-    # 通过切片 out_ids[len(in_ids):] 去掉输入 token，仅留下模型生成的内容
+    # ── Step 6: Remove the input tokens and retain only generated tokens ────────
+    # generated_ids contains the full input and output sequence.
+    # Slice from len(in_ids) to retain only model-generated content.
     trimmed = [
         out_ids[len(in_ids):]
         for in_ids, out_ids in zip(model_inputs.input_ids, generated_ids)
     ]
 
-    # ── Step 7: 将 token ID 解码为可读文本并返回 ──────────────────────────────
-    # skip_special_tokens=True 自动过滤 <|im_end|> 等特殊 token
-    # [0] 取 batch 中第一条（本服务每次只处理单张图片）
+    # ── Step 7: Decode token IDs into readable text and return it ──────────────
+    # skip_special_tokens=True removes special tokens such as <|im_end|>.
+    # [0] selects the first batch item because each request contains one image.
     return processor.batch_decode(
         trimmed,
         skip_special_tokens=True,
@@ -205,17 +206,17 @@ def say_hello():
 
 @app.post("/api/vqa")
 async def visual_question_answering(
-    image: UploadFile = File(..., description="胃肠道医学图像文件"),
-    question: str = Form(..., description="关于图像的问题"),
+    image: UploadFile = File(..., description="Gastrointestinal medical image file"),
+    question: str = Form(..., description="Question about the image"),
 ):
 
     if model is None or processor is None:
-        raise HTTPException(status_code=503, detail="模型尚未加载完成，请稍后重试")
+        raise HTTPException(status_code=503, detail="The model is not loaded yet. Please try again later.")
     contents = await image.read()
     try:
         pil_image = Image.open(io.BytesIO(contents)).convert("RGB")
     except Exception:
-        raise HTTPException(status_code=400, detail="无效的图像文件")
+        raise HTTPException(status_code=400, detail="Invalid image file")
 
     
     original_name = image.filename or "upload.jpg"
